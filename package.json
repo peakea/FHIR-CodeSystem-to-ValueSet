@@ -1,0 +1,26 @@
+{
+  "name": "fhir-codesystem-to-valueset",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/convert.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peakea/FHIR-CodeSystem-to-ValueSet.git"
+  },
+  "author": "Ashley Peake",
+  "bugs": {
+    "url": "https://github.com/peakea/FHIR-CodeSystem-to-ValueSet/issues"
+  },
+  "homepage": "https://github.com/peakea/FHIR-CodeSystem-to-ValueSet#readme",
+  "dependencies": {
+    "@types/fhir": "^0.0.41",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.3.0"
+  }
+}
