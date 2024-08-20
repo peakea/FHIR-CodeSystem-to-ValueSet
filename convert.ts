@@ -1,6 +1,7 @@
 import { CodeSystem, CodeSystemConcept, ValueSet, ValueSetComposeInclude } from 'fhir/r5';
 import { program } from 'commander';
 import fs from 'fs';
+import path from 'path';
 
 /**
  * Convert a CodeSystem to a ValueSet.
@@ -41,13 +42,13 @@ function codeSystemToValueSet(options: {
         id: options.id,
         url: options.url,
         name: options.name,
-        description: options.description || `ValueSet based on CodeSystem ${options.codeSystem.id}`,
+        description: options.description,
         status: options.status,
         compose: {
             include: [
                 {
                     system: options.codeSystem.url,
-                    concept: options.codeSystem.concept.map((concept:CodeSystemConcept) => ({
+                    concept: options.codeSystem.concept.map((concept: CodeSystemConcept) => ({
                         code: concept.code,
                         display: concept.display,
                         definition: concept.definition, // Optional
@@ -64,7 +65,7 @@ function codeSystemToValueSet(options: {
 /**
  * Convert a CSV file to a FHIR ValueSet.
  */
-function csvToValueSet(options:  {
+function csvToValueSet(options: {
     csvFile: string;
     status: "draft" | "active" | "retired" | "unknown";
     url?: string;
@@ -81,10 +82,12 @@ function csvToValueSet(options:  {
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         const [code, system, display] = line.split(',');
+        // Ignore empty lines
+        if (!code) { continue; }
         // check if include has a system and add to that group
         const systemIndex = include.findIndex((group) => group.system === system);
         if (systemIndex !== -1) {
-            if(!include[systemIndex].concept) {
+            if (!include[systemIndex].concept) {
                 include[systemIndex].concept = [];
             }
             // Add the concept to the system group
@@ -99,12 +102,13 @@ function csvToValueSet(options:  {
     }
 
     // Create a new ValueSet object
+    const id = options.id || path.basename(options.csvFile).replace(/\.csv$/, '');
     const valueSet: ValueSet = {
         resourceType: 'ValueSet',
-        id: options.id || options.csvFile,
-        url: options.url || `http://hl7.org/fhir/ValueSet${options.csvFile}`,
-        name: options.name || options.csvFile,
-        description: options.description ||  `ValueSet based on CodeSystem ${options.id}`,
+        id,
+        url: options.url || `http://hl7.org/fhir/ValueSet/${id}`,
+        name: options.name || id,
+        description: options.description,
         status: options.status || 'active',
         compose: {
             include: include,
@@ -119,7 +123,7 @@ program.version('0.0.1');
 program.command('convert')
     .description('Convert CodeSystem to ValueSet')
     .argument('<file>', 'Path to CodeSystem JSON file')
-    .option('-o, --output <file>', 'Output file path')
+    .option('-o, --output [file]', 'Output file path')
     .option('-u, --url <url>', 'ValueSet URL')
     .option('-n, --name <name>', 'ValueSet name')
     .option('-d, --description <description>', 'ValueSet description')
@@ -150,8 +154,13 @@ program.command('convert')
         const jsonStr = JSON.stringify(valueSet, null, 2);
         // Write to file
         if (options.output) {
-            const fs = require('fs');
-            fs.writeFileSync(options.output, jsonStr);
+            // if output is flag only use the input file with a .json extension
+            let outFile = options.output;
+            if (typeof options.output == 'boolean') {
+                outFile = file.replace(/\.json$/, '-value-set.json');
+                outFile = outFile.replace(/\.csv$/, '.json');
+            }
+            fs.writeFileSync(outFile, jsonStr);
         } else {
             console.log(jsonStr);
         }
